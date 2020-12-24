@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/gdamore/tcell"
+	"github.com/gdamore/tcell/v2"
 	"github.com/pgavlin/femto"
 	"github.com/pgavlin/femto/runtime"
 	"github.com/rivo/tview"
