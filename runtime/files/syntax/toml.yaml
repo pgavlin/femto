@@ -40,3 +40,4 @@ rules:
         rules:
             - todo: "(TODO|XXX|FIXME):?"
 
+    - include: "colorizer"

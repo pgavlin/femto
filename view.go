@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/gdamore/tcell/v2"
-	"github.com/rivo/tview"
+	"github.com/digitallyserviced/tview"
 )
 
 // The View struct stores information about a view into a buffer.
@@ -54,6 +54,10 @@ type View struct {
 	cellview *CellView
 
 	// The scrollbar
+	statusline *Statusline
+  statusText string
+
+	// The scrollbar
 	scrollbar *ScrollBar
 
 	// The keybindings
@@ -82,6 +86,10 @@ func NewView(buf *Buffer) *View {
 		view: v,
 	}
 
+  v.statusline = &Statusline{
+  	view: v,
+  }
+
 	v.bindings = DefaultKeyBindings
 
 	return v
@@ -103,6 +111,11 @@ func (v *View) InputHandler() func(event *tcell.EventKey, _ func(p tview.Primiti
 // GetKeyBindings gets the keybindings for this view.
 func (v *View) GetKeybindings() KeyBindings {
 	return v.bindings
+}
+
+// Setstatustext sets the right side status text for the statusline.
+func (v *View) SetStatusText(t string) {
+	v.statusText =t 
 }
 
 // SetKeybindings sets the keybindings for this view.
@@ -385,6 +398,12 @@ func (v *View) displayView(screen tcell.Screen) {
 	width := v.width
 	left := v.leftCol
 	top := v.Topline
+  
+  statusHeight := 0
+  if v.Buf.Settings["statusline"].(bool) {
+    statusHeight = 1
+  }
+  height= height - statusHeight
 
 	v.cellview.Draw(v.Buf, v.colorscheme, top, height, left, width-v.lineNumOffset)
 
@@ -589,6 +608,10 @@ func (v *View) Draw(screen tcell.Screen) {
 			screen.SetContent(x, y, ' ', nil, defStyle)
 		}
 	}
+  
+  if on, ok := v.Buf.Settings["statusline"].(bool); ok && on {
+		v.statusline.Display(screen)
+  }
 
 	v.displayView(screen)
 

@@ -9,7 +9,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/pgavlin/femto"
 	"github.com/pgavlin/femto/runtime"
-	"github.com/rivo/tview"
+	"github.com/digitallyserviced/tview"
 )
 
 func saveBuffer(b *femto.Buffer, path string) error {
