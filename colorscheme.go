@@ -11,9 +11,11 @@ import (
 
 // Colorscheme is a map from string to style -- it represents a colorscheme
 type Colorscheme map[string]tcell.Style
+type TagColorscheme map[string]string
 
 // The current default colorscheme
 var colorscheme Colorscheme
+var tagColorscheme TagColorscheme
 
 // The default cell style
 var defStyle tcell.Style
@@ -24,7 +26,34 @@ func GetColor(color string) tcell.Style {
 }
 
 // GetColor takes in a syntax group and returns the colorscheme's style for that group
+func (colorscheme TagColorscheme) GetColorTags(color string) string {
+  st := "-:-:-"
+	if color == "" {
+		return st
+	}
+	groups := strings.Split(color, ".")
+	if len(groups) > 1 {
+		curGroup := ""
+		for i, g := range groups {
+			if i != 0 {
+				curGroup += "."
+			}
+			curGroup += g
+			if style, ok := tagColorscheme[curGroup]; ok {
+				st = style
+			}
+		}
+	} else if style, ok := tagColorscheme[color]; ok {
+		st = style
+	} else {
+		st = StyleToTagStyle(color)
+	}
+  // fmt.Println(st)
+
+	return st
+}
 func (colorscheme Colorscheme) GetColor(color string) tcell.Style {
+  // fmt.Println(color)
 	st := defStyle
 	if color == "" {
 		return st
@@ -53,6 +82,7 @@ func (colorscheme Colorscheme) GetColor(color string) tcell.Style {
 // init picks and initializes the colorscheme when micro starts
 func init() {
 	colorscheme = make(Colorscheme)
+	tagColorscheme = make(TagColorscheme)
 	defStyle = tcell.StyleDefault.
 		Foreground(tcell.ColorDefault).
 		Background(tcell.ColorDefault)
@@ -73,6 +103,7 @@ func ParseColorscheme(text string) Colorscheme {
 	lines := strings.Split(text, "\n")
 
 	c := make(Colorscheme)
+	tc := make(TagColorscheme)
 
 	for _, line := range lines {
 		if strings.TrimSpace(line) == "" ||
@@ -87,7 +118,9 @@ func ParseColorscheme(text string) Colorscheme {
 			colors := string(matches[2])
 
 			style := StringToStyle(colors)
+      tagStyle := StyleToTagStyle(colors)
 			c[link] = style
+			tc[link] = tagStyle
 
 			if link == "default" {
 				defStyle = style
@@ -97,12 +130,58 @@ func ParseColorscheme(text string) Colorscheme {
 		}
 	}
 
+  tagColorscheme = tc
+
 	return c
 }
 
 // StringToStyle returns a style from a string
 // The strings must be in the format "extra foregroundcolor,backgroundcolor"
 // The 'extra' can be bold, reverse, or underline
+func StyleToTagStyle(str string) string {
+	var fg, bg string
+	spaceSplit := strings.Split(str, " ")
+	var split []string
+	if len(spaceSplit) > 1 {
+		split = strings.Split(spaceSplit[1], ",")
+	} else {
+		split = strings.Split(str, ",")
+	}
+	if len(split) > 1 {
+		fg, bg = split[0], split[1]
+	} else {
+		fg = split[0]
+	}
+	fg = strings.TrimSpace(fg)
+	bg = strings.TrimSpace(bg)
+
+	// var fgColor, bgColor tcell.Color
+	// if fg == "" {
+	// 	fgColor, _, _ = defStyle.Decompose()
+	// } else {
+	// 	fgColor = StringToColor(fg)
+	// }
+	// if bg == "" {
+	// 	_, bgColor, _ = defStyle.Decompose()
+	// } else {
+	// 	bgColor = StringToColor(bg)
+	// }
+
+  attrs := ""
+  return fmt.Sprintf("%s:%s:%s", fg, bg, attrs)
+	//
+	// style := defStyle.Foreground(fgColor).Background(bgColor)
+	// if strings.Contains(str, "bold") {
+	// 	style = style.Bold(true)
+	// }
+	// if strings.Contains(str, "reverse") {
+	// 	style = style.Reverse(true)
+	// }
+	// if strings.Contains(str, "underline") {
+	// 	style = style.Underline(true)
+	// }
+	// return style
+}
 func StringToStyle(str string) tcell.Style {
 	var fg, bg string
 	spaceSplit := strings.Split(str, " ")

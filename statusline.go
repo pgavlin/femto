@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path"
 	"strconv"
+	"strings"
 
 	"github.com/digitallyserviced/tview"
 	"github.com/gdamore/tcell/v2"
@@ -15,6 +16,25 @@ import (
 // modified, filetype, cursor location
 type Statusline struct {
 	view *View
+  line *tview.TextView
+}
+
+func NewStatusline(v *View) *Statusline {
+  l := tview.NewTextView()
+  l.SetDynamicColors(true).SetRegions(true).SetTextAlign(tview.AlignLeft)
+  l.SetMaxLines(1)
+
+  sl := &Statusline{
+  	view: v,
+  	line: l,
+  }
+
+  return sl
+
+}
+
+func (sline *Statusline) UpdateScheme(screen tcell.Screen) {
+
 }
 
 // Display draws the statusline to the screen
@@ -26,15 +46,30 @@ func (sline *Statusline) Display(screen tcell.Screen) {
 	// We'll draw the line at the lowest line in the view
 	y := sline.view.height-1 + sline.view.y
 
+  bgS := colorscheme.GetColor("line-number")
+  _, bg, _ := bgS.Decompose()
+  // fmt.Println(bg)
+  sline.line.SetBackgroundColor(tcell.GetColor("#21252B"))
+  sline.line.SetDontClear(false)
+
+  regions := make([]string, 0)
+  makeRegion := func(style, content string) string {
+    styleTag := tagColorscheme.GetColorTags(style)
+    return fmt.Sprintf(`[%s]%s[-:-:-]`, styleTag, content)
+
+  }
+
 	file := sline.view.Buf.Path
 	if sline.view.Buf.Settings["basename"].(bool) {
 		file = path.Base(sline.view.Buf.Path)
 	}
-
 	// If the buffer is dirty (has been modified) write a little '+'
+
 	if sline.view.Buf.Modified() {
 		file += " +"
 	}
+
+  regions = append(regions, makeRegion("identifier", fmt.Sprintf(" %s ", file)))
 
 	// Add one to cursor.x and cursor.y because (0,0) is the top left,
 	// but users will be used to (1,1) (first line,first column)
@@ -42,11 +77,14 @@ func (sline *Statusline) Display(screen tcell.Screen) {
 	// so a '\t' is only 1, when it should be tabSize
 	columnNum := strconv.Itoa(sline.view.Cursor.GetVisualX() + 1)
 	lineNum := strconv.Itoa(sline.view.Cursor.Y + 1)
+  regions = append(regions, makeRegion("line-number", fmt.Sprintf("(%sL,%sC)", lineNum, columnNum)))
 
 	file += " (" + lineNum + "," + columnNum + ")"
 
 	// Add the filetype
 	file += " " + sline.view.Buf.FileType()
+  regions = append(regions, makeRegion("statusline", fmt.Sprintf(" %s ", sline.view.Buf.FileType())))
+  regions = append(regions, makeRegion("statusline", fmt.Sprintf(" %s ", sline.view.Buf.Settings["fileformat"].(string))))
 
 	file += " " + sline.view.Buf.Settings["fileformat"].(string)
 
@@ -71,13 +109,18 @@ func (sline *Statusline) Display(screen tcell.Screen) {
 	// 	}
 	// 	rightText += " "
 	// }
+  // sline.line.SetText(strings.Join(regions, makeRegion("divider", "▲ ")))
+  sline.line.SetText(strings.Join(regions, makeRegion("statusline", "┇")))
+  sline.line.Draw(screen)
+  return
 
 	statusLineStyle := defStyle.Reverse(true)
 	if style, ok := sline.view.colorscheme["statusline"]; ok {
 		statusLineStyle = style
 	}
   fg, bg, attr := statusLineStyle.Decompose()
-  fmt.Printf("%06x %06x %d", fg.Hex(), bg.Hex(), attr)
+  _,_,_ = fg,bg,attr
+  // fmt.Printf("%06x %06x %d", fg.Hex(), bg.Hex(), attr)
 
 
 	// Maybe there is a unicode filename?

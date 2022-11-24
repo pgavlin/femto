@@ -86,9 +86,12 @@ func NewView(buf *Buffer) *View {
 		view: v,
 	}
 
-  v.statusline = &Statusline{
-  	view: v,
-  }
+  v.statusline = NewStatusline(v)
+
+  // v.statusline = &Statusline{
+  // 	view: v,
+  //   line: l,
+  // }
 
 	v.bindings = DefaultKeyBindings
 
@@ -98,6 +101,9 @@ func NewView(buf *Buffer) *View {
 // SetRect sets a new position for the view.
 func (v *View) SetRect(x, y, width, height int) {
 	v.Box.SetRect(x, y, width, height)
+  if v.statusline != nil {
+    v.statusline.line.Box.SetRect(v.x, v.y + v.height - 1, v.width, 1)
+  }
 	v.x, v.y, v.width, v.height = v.Box.GetInnerRect()
 }
 
@@ -610,6 +616,7 @@ func (v *View) Draw(screen tcell.Screen) {
 	}
   
   if on, ok := v.Buf.Settings["statusline"].(bool); ok && on {
+    v.statusline.line.Box.SetRect(v.x, v.y + v.height - 1, v.width, 1)
 		v.statusline.Display(screen)
   }
 
