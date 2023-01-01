@@ -18,6 +18,8 @@ var (
 	fileformat = 0
 )
 
+var messenger *Messenger
+
 // Buffer stores the text for files that are loaded into the text editor
 // It uses a rope to efficiently store the string and contains some
 // simple functions for saving and wrapper functions for modifying the rope
@@ -244,6 +246,10 @@ func calcHash(b *Buffer, out *[md5.Size]byte) {
 
 // Modified returns if this buffer has been modified since
 // being opened
+func (b *Buffer) UpdateHash() {
+  calcHash(b, &b.origHash)
+}
+
 func (b *Buffer) Modified() bool {
 	if b.Settings["fastdirty"].(bool) {
 		return b.IsModified

@@ -1,6 +1,8 @@
 package femto
 
 import (
+	// "fmt"
+
 	"github.com/gdamore/tcell/v2"
 	"github.com/mattn/go-runewidth"
 )
@@ -145,13 +147,19 @@ func (c *CellView) Draw(buf *Buffer, colorscheme Colorscheme, top, height, left,
 			// We're going to draw the entire line now
 			lineLength = StringWidth(lineStr, tabsize)
 		}
+    css := ""
 
 		for viewCol < lineLength {
 			if colN >= len(line) {
 				break
 			}
 			if group, ok := buf.Match(lineN)[colN]; ok {
-				curStyle = colorscheme.GetColor(group.String())
+        if group.String() == "constant.css" {
+          css = buf.Substr(Loc{colN,lineN}, Loc{colN+7,lineN})
+          curStyle = tcell.StyleDefault.Foreground(tcell.GetColor(css)).Reverse(true)
+        } else {
+          curStyle = colorscheme.GetColor(group.String())
+        }
 			}
 
 			char := line[colN]
