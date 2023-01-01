@@ -84,7 +84,9 @@ func (sline *Statusline) Display(screen tcell.Screen) {
 	// Add the filetype
 	file += " " + sline.view.Buf.FileType()
   regions = append(regions, makeRegion("statusline", fmt.Sprintf(" %s ", sline.view.Buf.FileType())))
-  regions = append(regions, makeRegion("statusline", fmt.Sprintf(" %s ", sline.view.Buf.Settings["fileformat"].(string))))
+  // regions = append(regions, makeRegion("statusline", fmt.Sprintf(" %s ", sline.view.Buf.Settings["fileformat"].(string))))
+
+  regions = append(regions, makeRegion("identifier", fmt.Sprintf(" %s ", sline.view.statusText)))
 
 	file += " " + sline.view.Buf.Settings["fileformat"].(string)
 
@@ -110,7 +112,7 @@ func (sline *Statusline) Display(screen tcell.Screen) {
 	// 	rightText += " "
 	// }
   // sline.line.SetText(strings.Join(regions, makeRegion("divider", "▲ ")))
-  sline.line.SetText(strings.Join(regions, makeRegion("statusline", "┇")))
+  sline.line.SetText(strings.Join(regions, makeRegion("statusline", " ∣ ")))
   sline.line.Draw(screen)
   return
 

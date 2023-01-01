@@ -10,6 +10,7 @@ import (
 const (
 	RTColorscheme = "colorscheme"
 	RTSyntax      = "syntax"
+	RTPreview      = "preview"
 )
 
 func readDir(fs http.FileSystem, path string) ([]os.FileInfo, error) {
@@ -99,6 +100,7 @@ func NewRuntimeFiles(fs http.FileSystem) *RuntimeFiles {
 	rfs := &RuntimeFiles{}
 	rfs.AddFilesFromDirectory(fs, RTColorscheme, "/colorschemes", "*.micro")
 	rfs.AddFilesFromDirectory(fs, RTSyntax, "/syntax", "*.yaml")
+	rfs.AddFilesFromDirectory(fs, RTPreview, "/previews", "*.tvt")
 	return rfs
 }
 

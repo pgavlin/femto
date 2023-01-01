@@ -1,12 +1,13 @@
 package femto
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/gdamore/tcell/v2"
 	"github.com/digitallyserviced/tview"
+	"github.com/gdamore/tcell/v2"
 )
 
 // The View struct stores information about a view into a buffer.
@@ -35,6 +36,8 @@ type View struct {
 
 	// How much to offset because of line numbers
 	lineNumOffset int
+
+  	messages map[string][]GutterMessage
 
 	// The buffer
 	Buf *Buffer
@@ -85,6 +88,8 @@ func NewView(buf *Buffer) *View {
 	v.scrollbar = &ScrollBar{
 		view: v,
 	}
+  	v.messages = make(map[string][]GutterMessage)
+
 
   v.statusline = NewStatusline(v)
 
@@ -189,6 +194,7 @@ func (v *View) OpenBuffer(buf *Buffer) {
 	v.Cursor.ResetSelection()
 	v.Relocate()
 	v.Center()
+	v.messages = make(map[string][]GutterMessage)
 
 	// Set isOverwriteMode to false, because we assume we are in the default mode when editor
 	// is opened
@@ -396,6 +402,15 @@ func (v *View) displayView(screen tcell.Screen) {
 	} else {
 		v.lineNumOffset = 0
 	}
+  var hasGutterMessages bool
+	for _, v := range v.messages {
+		if len(v) > 0 {
+			hasGutterMessages = true
+		}
+	}
+	if hasGutterMessages {
+		v.lineNumOffset += 2
+	}
 
 	xOffset := v.x + v.lineNumOffset
 	yOffset := v.y
@@ -442,7 +457,55 @@ func (v *View) displayView(screen tcell.Screen) {
 		}
 
 		screenX = v.x
-
+// If there are gutter messages we need to display the '>>' symbol here
+		if hasGutterMessages {
+			// msgOnLine stores whether or not there is a gutter message on this line in particular
+			msgOnLine := false
+			for k := range v.messages {
+				for _, msg := range v.messages[k] {
+					if msg.lineNum == realLineN {
+						msgOnLine = true
+						gutterStyle := defStyle
+						switch msg.kind {
+						case GutterInfo:
+							if style, ok := v.colorscheme["gutter-info"]; ok {
+								gutterStyle = style
+							}
+						case GutterWarning:
+							if style, ok := v.colorscheme["gutter-warning"]; ok {
+								gutterStyle = style
+							}
+						case GutterError:
+              fmt.Println("ERROR")
+							if style, ok := v.colorscheme["gutter-error"]; ok {
+              fmt.Println("STYLE")
+								gutterStyle = style
+							}
+						}
+            fmt.Println(gutterStyle)
+						screen.SetContent(screenX, yOffset+visualLineN, '', []rune{' '}, gutterStyle)
+						screenX++
+						screen.SetContent(screenX, yOffset+visualLineN, ' ', nil, gutterStyle)
+						screenX++
+						// if v.Cursor.Y == realLineN && !messenger.hasPrompt {
+						// 	messenger.Message(msg.msg)
+						// 	messenger.gutterMessage = true
+						// }
+					}
+				}
+			}
+			// If there is no message on this line we just display an empty offset
+			if !msgOnLine {
+				screen.SetContent(screenX, yOffset+visualLineN, ' ', nil, defStyle)
+				screenX++
+				screen.SetContent(screenX, yOffset+visualLineN, ' ', nil, defStyle)
+				screenX++
+				// if v.Cursor.Y == realLineN && messenger.gutterMessage {
+				// 	messenger.Reset()
+				// 	messenger.gutterMessage = false
+				// }
+			}
+		}
 		lineNumStyle := defStyle
 		if v.Buf.Settings["ruler"] == true {
 			// Write the line number
@@ -629,5 +692,36 @@ func (v *View) Draw(screen tcell.Screen) {
 
 	if v.Buf.Settings["scrollbar"].(bool) {
 		v.scrollbar.Display(screen)
+	}
+}
+// GutterMessage creates a message in this view's gutter
+func (v *View) GutterMessage(section string, lineN int, msg string, kind int) *GutterMessage {
+	lineN--
+	gutterMsg := GutterMessage{
+		lineNum: lineN,
+		msg:     msg,
+		kind:    kind,
+	}
+	for _, v := range v.messages {
+		for _, gmsg := range v {
+			if gmsg.lineNum == lineN {
+				return nil
+			}
+		}
+	}
+	messages := v.messages[section]
+	v.messages[section] = append(messages, gutterMsg)
+  return &gutterMsg
+}
+
+// ClearGutterMessages clears all gutter messages from a given section
+func (v *View) ClearGutterMessages(section string) {
+	v.messages[section] = []GutterMessage{}
+}
+
+// ClearAllGutterMessages clears all the gutter messages
+func (v *View) ClearAllGutterMessages() {
+	for k := range v.messages {
+		v.messages[k] = []GutterMessage{}
 	}
 }
